@@ -6,7 +6,8 @@
 module Haste.Foreign (
     FFI, Pack (..), Unpack (..), Marshal,
     Unpacked, Opaque,
-    ffi, export, toOpaque, fromOpaque
+    ffi, export, toOpaque, fromOpaque,
+    onHotLoad, onHotUnload
   ) where
 import Haste.Prim
 import Haste.JSType
@@ -14,6 +15,12 @@ import Data.Word
 import Data.Int
 import System.IO.Unsafe
 import Unsafe.Coerce
+
+onHotLoad :: Ptr (IO ()) -> IO ()
+onHotLoad = error "Tried to use onHotLoad on server side!"
+
+onHotUnload :: Ptr (IO ()) -> IO ()
+onHotUnload = error "Tried to use onHotUnload on server side!"
 
 #ifdef __HASTE__
 foreign import ccall eval :: JSString -> IO (Ptr a)

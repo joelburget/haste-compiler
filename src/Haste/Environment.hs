@@ -7,7 +7,8 @@ module Haste.Environment (
     ghcBinary, ghcPkgBinary,
     hasteBinary, hastePkgBinary, hasteInstHisBinary, hasteInstBinary,
     hasteCopyPkgBinary, closureCompiler, portableHaste,
-    needsReboot, bootFile
+    needsReboot, bootFile,
+    commonJsSysDir, commonJsUserDir
   ) where
 import System.IO.Unsafe
 import Data.Bits
@@ -58,13 +59,17 @@ jsDir :: FilePath
 jsDir = unsafePerformIO $ getDataDir
 #endif
 
--- | Haste user directory. Usually ~/.haste.
+-- | Haste user directory. Usually ~/.haste/haste-X.X.X_ghc-X.X.X.
 hasteUserDir :: FilePath
 Right hasteUserDir =
   unsafePerformIO . shell . withAppDirectory "haste" $ \d -> do
     return $ d </> showBootVersion bootVersion
 
--- | Directory where user .jsmod files are stored.
+-- | Directory where system commonjs files are stored.
+commonJsSysDir :: FilePath
+commonJsSysDir = hasteSysDir </> "commonjs"
+
+-- | Directory where system .jsmod files are stored.
 jsmodSysDir :: FilePath
 jsmodSysDir = hasteSysDir </> "jsmods"
 
@@ -79,6 +84,10 @@ pkgSysLibDir = hasteInstSysDir </> "lib"
 -- | Directory housing package information.
 pkgSysDir :: FilePath
 pkgSysDir = hasteSysDir </> "packages"
+
+-- | Directory where user commonjs files are stored.
+commonJsUserDir :: FilePath
+commonJsUserDir = hasteUserDir </> "commonjs"
 
 -- | Directory where user .jsmod files are stored.
 jsmodUserDir :: FilePath

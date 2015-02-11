@@ -33,6 +33,12 @@ hasteOpts unbooted = [
     Option "?" ["help"]
            (NoArg id) $
            "Display this message.",
+    Option "" ["libcommonjs"]
+           (NoArg $ \cfg -> cfg {targetLibPath = if unbooted
+                                                   then commonJsSysDir
+                                                   else commonJsUserDir,
+                                 performLink = False}) $
+           "Install commonjs files into the user's library.",
     Option "" ["libinstall"]
            (NoArg $ \cfg -> cfg {targetLibPath = if unbooted
                                                    then jsmodSysDir

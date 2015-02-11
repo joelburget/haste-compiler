@@ -78,5 +78,10 @@ Library
             base,
             array,
             random,
-            websockets >= 0.8
+            websockets >= 0.8,
+            binary >= 0.4,
+            data-binary-ieee754 >= 0.4,
+            utf8-string >= 0.3,
+            shellmate >= 0.1,
+            haste-compiler >= 0.5
     Default-Language: Haskell98

@@ -1,5 +1,5 @@
 -- | Read and write JSMods.
-module Haste.Module (writeModule, readModule) where
+module Haste.Module (writeModule, readModule, fromRight) where
 import Module (moduleNameSlashes, mkModuleName)
 import qualified Data.ByteString.Lazy as B
 import Control.Shell
@@ -30,7 +30,7 @@ writeModule basepath m@(Module pkgid modname _ _) boot =
     path = moduleFilePath basepath pkgid modname boot
 
 -- | Read a module from file. If the module is not found at the specified path,
---   libpath/path is tried instead. Returns Nothing is the module is not found
+--   libpath/path is tried instead. Returns Nothing if the module is not found
 --   on either path.
 readModule :: FilePath -> String -> String -> IO (Maybe Module)
 readModule basepath pkgid modname = fromRight "readModule" . shell $ do

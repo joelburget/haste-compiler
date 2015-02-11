@@ -1,5 +1,5 @@
-{-# LANGUAGE CPP #-}
 module Main (main) where
+
 import GHC
 import HscMain
 import Outputable (showPpr)
@@ -12,9 +12,10 @@ import HscTypes
 import GhcMonad
 import Module (packageIdString)
 import System.Environment (getArgs)
-import Control.Monad (when)
+import Control.Monad (when, forM_)
 import Haste
 import Haste.Args
+import Haste.Compile
 import Haste.Opts
 import Haste.Environment
 import Haste.Version
@@ -23,6 +24,7 @@ import System.Exit (exitFailure)
 import Data.Version
 import Data.List
 import qualified Control.Shell as Sh
+import Name (getOccString)
 
 logStr :: Config -> String -> IO ()
 logStr cfg = when (verbose cfg) . hPutStrLn stderr
@@ -61,7 +63,7 @@ main = do
     initUserPkgDB
     args <- fmap (++ packageDBArgs) getArgs
     runCompiler <- preArgs args
-    when (runCompiler) $ do
+    when runCompiler $ do
       if allSupported args
         then hasteMain args
         else callVanillaGHC args
@@ -70,6 +72,7 @@ main = do
                      "-no-user-package-db",
                      "-package-db " ++ pkgSysDir,
                      "-package-db " ++ pkgUserDir ]
+
 -- | Call vanilla GHC; used for boot files and the like.
 callVanillaGHC :: [String] -> IO ()
 callVanillaGHC args = do
@@ -146,94 +149,28 @@ compiler unbooted cmdargs = do
             _ <- load LoadAllTargets
             depanal [] False
           let cfg = fillLinkerConfig dynflags' config
-          mapM_ (compile cfg dynflags') deps
+          mapM_ (compileDep (commonJsLibPath cfg) dynflags') deps
 
           -- Link everything together into a .js file.
           when (performLink cfg) $ liftIO $ do
-            flip mapM_ files' $ \file -> do
+            forM_ files' $ \file -> do
               let outfile = outFile cfg cfg file
               logStr cfg $ "Linking program " ++ outfile
               let pkgid = showPpr dynflags $ thisPackage dynflags'
               link cfg pkgid file
-              case useGoogleClosure cfg of
-                Just clopath -> closurize cfg clopath outfile
-                _            -> return ()
-              when (outputHTML cfg) $ do
-                res <- Sh.shell $ Sh.withCustomTempFile "." $ \tmp h -> do
-                  prog <- Sh.file outfile
-                  Sh.hPutStrLn h (htmlSkeleton outfile prog)
-                  Sh.liftIO $ hClose h
-                  Sh.mv tmp outfile
-                case res of
-                  Right () -> return ()
-                  Left err -> error $ "Couldn't output HTML file: " ++ err
+              -- case useGoogleClosure cfg of
+              --   Just clopath -> closurize cfg clopath outfile
+              --   _            -> return ()
+              -- when (outputHTML cfg) $ do
+              --   res <- Sh.shell $ Sh.withCustomTempFile "." $ \tmp h -> do
+              --     prog <- Sh.file outfile
+              --     Sh.hPutStrLn h (htmlSkeleton outfile prog)
+              --     Sh.liftIO $ hClose h
+              --     Sh.mv tmp outfile
+              --   case res of
+              --     Right () -> return ()
+              --     Left err -> error $ "Couldn't output HTML file: " ++ err
 
--- | Produce an HTML skeleton with an embedded JS program.
-htmlSkeleton :: FilePath -> String -> String
-htmlSkeleton filename prog = concat [
-  "<!DOCTYPE HTML>",
-  "<html><head>",
-  "<title>", filename , "</title>",
-  "<meta charset=\"UTF-8\">",
-  "<script type=\"text/javascript\">", prog, "</script>",
-  "</head><body></body></html>"]
-
--- | Do everything required to get a list of STG bindings out of a module.
-prepare :: (GhcMonad m) => DynFlags -> ModSummary -> m ([StgBinding], ModuleName)
-prepare dynflags theMod = do
-  env <- getSession
-  let name = moduleName $ ms_mod theMod
-  pgm <- parseModule theMod
-    >>= typecheckModule
-    >>= desugarModule
-    >>= liftIO . hscSimplify env . coreModule
-    >>= liftIO . tidyProgram env
-    >>= prepPgm env . fst
-#if __GLASGOW_HASKELL__ >= 707
-    >>= liftIO . coreToStg dynflags (ms_mod theMod)
-#else
-    >>= liftIO . coreToStg dynflags
-#endif
-  return (pgm, name)
-  where
-    prepPgm env tidy = liftIO $ do
-      prepd <- corePrepPgm dynflags env (cg_binds tidy) (cg_tycons tidy)
-      return prepd
-
--- | Run Google Closure on a file.
-closurize :: Config -> FilePath -> FilePath -> IO ()
-closurize cfg cloPath f = do
-  let arguments = useGoogleClosureFlags cfg
-  logStr cfg $ "Running the Google Closure compiler on " ++ f ++ "..."
-  let cloFile = f `Sh.addExtension` ".clo"
-  res <- Sh.shell $ do
-    str <- Sh.run "java"
-      (["-jar", cloPath,
-        "--compilation_level", "ADVANCED_OPTIMIZATIONS",
-        "--jscomp_off", "globalThis", f]
-       ++ arguments) ""
-    Sh.file cloFile str :: Sh.Shell ()
-    Sh.mv cloFile f
-  case res of
-    Left e  -> fail $ "Couldn't execute Google Closure compiler: " ++ e
-    Right _ -> return ()
-
--- | Compile a module into a .jsmod intermediate file.
-compile :: (GhcMonad m) => Config -> DynFlags -> ModSummary -> m ()
-compile cfg dynflags modSummary = do
-    let boot = case ms_hsc_src modSummary of
-                 HsBootFile -> True
-                 _          -> False
-    (pgm, name) <- prepare dynflags modSummary
-    let pkgid = showPpr dynflags $ modulePackageId $ ms_mod modSummary
-        cfg' = cfg {showOutputable = showPpr dynflags}
-        theCode = generate cfg' pkgid name pgm
-    liftIO $ logStr cfg $ "Compiling " ++ myName boot ++ " into " ++ targetpath
-    liftIO $ writeModule targetpath theCode boot
-  where
-    myName False = moduleNameString $ moduleName $ ms_mod modSummary
-    myName True = myName False ++ " [boot]"
-    targetpath = targetLibPath cfg
 
 -- | Fill in linkage info, such as whether to link at all and what the program
 --   entry point is.

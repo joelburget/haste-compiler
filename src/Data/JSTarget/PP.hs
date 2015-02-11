@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE OverloadedStrings, FlexibleInstances,
              GeneralizedNewtypeDeriving #-}
--- | JSTarget pretty printing machinery. The actual printing happens in 
+-- | JSTarget pretty printing machinery. The actual printing happens in
 --   Data.JSTarget.Print.
 module Data.JSTarget.PP where
 import Data.Default
@@ -104,15 +104,19 @@ lookupLabel lbl = PP $ \_ _ ns js b -> (ns, b, js M.! lbl)
 getOpt :: (PPOpts -> a) -> PP a
 getOpt f = PP $ \opts _ ns _ b -> (ns, b, f opts)
 
--- | Runs the given printer iff the specifiet option is True.
+-- | Runs the given printer iff the specified option is True.
 whenOpt :: (PPOpts -> Bool) -> PP () -> PP ()
 whenOpt f p = getOpt f >>= \x -> when x p
 
 -- | Pretty print an AST.
 pretty :: (JSTrav a, Pretty a) => PPOpts -> AST a -> BS.ByteString
-pretty opts (AST ast js) =
-  case runPP opts js (pp ast) of
-    (b, _) -> toLazyByteString b
+pretty opts (AST ast js) = toLazyByteString (evalPP opts js (pp ast))
+
+-- | Run a pretty printer.
+evalPP :: PPOpts -> JumpTable -> PP a -> Builder
+evalPP opts js p =
+  case unPP p opts 0 emptyNS js mempty of
+    (_, b, _) -> b
 
 -- | Run a pretty printer.
 runPP :: PPOpts -> JumpTable -> PP a -> (Builder, a)
@@ -137,7 +141,7 @@ buildFinalName (FinalName fn) =
       chars = listArray (0,arrLen-1)
               $ "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
       go 0 acc = acc
-      go n acc = let (rest, ix) = n `quotRem` arrLen 
+      go n acc = let (rest, ix) = n `quotRem` arrLen
                  in go rest (fromChar (chars ! ix) <> acc)
 
 -- | Indent the given builder another step.

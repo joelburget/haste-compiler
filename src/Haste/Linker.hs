@@ -31,7 +31,7 @@ link cfg pkgid target = do
       (progText, myMain') = prettyProg (ppOpts cfg) mainSym myDefs
       callMain = fromString "B(A(" <> myMain' <> fromString ", [0]));"
       launchApp = appStart cfg (fromString "hasteMain")
-  
+
   rtslibs <- mapM readFile $ rtsLibs cfg
   extlibs <- mapM readFile $ jsExternals cfg
   B.writeFile (outFile cfg cfg target)

@@ -90,6 +90,66 @@ Executable haste-boot
         directory
     Default-Language: Haskell98
 
+Executable haste-streaming
+    if flag(only-library)
+        buildable: False
+    Hs-Source-Dirs: src
+    GHC-Options: -Wall -O2
+    if flag(portable)
+        CPP-Options: -DPORTABLE
+    if flag(static)
+        if os(windows)
+          GHC-Options: -static -optl-static
+        else
+          if os(linux)
+            GHC-Options: -static -optl-static -optl-pthread
+    Build-Depends:
+        base < 5,
+        ghc-prim,
+        ghc >= 7.6,
+        mtl,
+        binary,
+        containers,
+        data-default,
+        bytestring >= 0.9.2.1,
+        utf8-string,
+        blaze-builder,
+        array,
+        ghc-paths,
+        random,
+        system-fileio,
+        shellmate >= 0.1.5,
+        either,
+        directory,
+        unix >= 2.7.0.1
+    Main-Is:
+        haste-streaming.hs
+    Other-Modules:
+        Haste
+        Haste.Args
+        Haste.Opts
+        Haste.Version
+        Haste.Environment
+        Haste.GHCPaths
+        Haste.Config
+        Haste.Monad
+        Haste.PrimOps
+        Haste.Compile
+        Haste.Module
+        Haste.Builtins
+        Haste.Errors
+        Haste.CodeGen
+        Data.JSTarget
+        Data.JSTarget.AST
+        Data.JSTarget.Binary
+        Data.JSTarget.Constructors
+        Data.JSTarget.Op
+        Data.JSTarget.Optimize
+        Data.JSTarget.PP
+        Data.JSTarget.Print
+        Data.JSTarget.Traversal
+    default-language: Haskell98
+
 Executable hastec
     if flag(only-library)
         buildable: False
@@ -135,6 +195,7 @@ Executable hastec
         Haste.PrimOps
         Haste.Module
         Haste.Linker
+        Haste.Compile
         Haste.Builtins
         Haste.Errors
         Haste.CodeGen
@@ -274,7 +335,18 @@ Library
         Haste.Prim
         Haste.Serialize
         Haste.WebSockets
+        Haste.Environment
     Other-Modules:
+        Haste.JSType
+        Haste.Compiler.Flags
+        Haste.DOM.Core
+        Haste.Version
+        Haste.GHCPaths
+        Paths_haste_compiler
+        Haste.Hash
+        Haste.Random
+        Haste.Concurrent.Monad
+        Haste.Concurrent.Ajax
         Haste.App.Client
         Haste.App.Monad
         Haste.App.Protocol
@@ -286,7 +358,6 @@ Library
         Haste.Concurrent.Monad
         Haste.Concurrent.Ajax
         Haste.DOM.Core
-        Haste.Environment
         Haste.Events.BasicEvents
         Haste.Events.Core
         Haste.Events.KeyEvents

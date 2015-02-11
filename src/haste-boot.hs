@@ -35,7 +35,7 @@ downloadFile f = do
         rqHeaders = [],
         rqBody = BS.empty
       }
-  case rspCode rsp of 
+  case rspCode rsp of
     (2, _, _) -> return $ rspBody rsp
     _         -> fail $ "Failed to download " ++ f ++ ": " ++ rspReason rsp
 
@@ -95,7 +95,7 @@ specs = [
     Option "" ["no-populate-setup-exe-cache"]
            (NoArg $ \cfg -> cfg {populateSetupExeCache = False}) $
            "Don't populate Cabal's setup-exe-cache. Speeds up boot, " ++
-           "but vill fail spectacularly unless your setup-exe-cache " ++
+           "but will fail spectacularly unless your setup-exe-cache " ++
            "is already populated.",
     Option "" ["trace-primops"]
            (NoArg $ \cfg -> cfg {tracePrimops = True}) $
@@ -134,8 +134,8 @@ bootHaste cfg tmpdir = inDirectory tmpdir $ do
       void $ run "ghc-pkg" ["unregister", "populate-setup-exe-cache"] ""
     when (not $ useLocalLibs cfg) $ do
       fetchLibs tmpdir
-    mapM_ clearDir [hasteInstUserDir, jsmodUserDir, pkgUserDir,
-                    hasteInstSysDir, jsmodSysDir, pkgSysDir]
+    mapM_ clearDir [hasteInstUserDir, jsmodUserDir, commonJsUserDir, pkgUserDir,
+                    hasteInstSysDir, jsmodSysDir, commonJsSysDir, pkgSysDir]
     buildLibs cfg
     when (portableHaste) $ do
       mapM_ relocate ["array", "bytestring", "containers", "data-default",
@@ -184,7 +184,7 @@ buildLibs cfg = do
     mkdir True $ pkgSysLibDir
     cpDir "include" hasteSysDir
     run_ hastePkgBinary ["update", "--global", "libraries" </> "rts.pkg"] ""
-    
+
     inDirectory "libraries" $ do
       -- Install ghc-prim
       inDirectory "ghc-prim" $ do
@@ -192,12 +192,12 @@ buildLibs cfg = do
         hasteInst $ ["build", "--install-jsmods"] ++ ghcOpts
         run_ hasteInstHisBinary ["ghc-prim-0.3.0.0", "dist" </> "build"] ""
         run_ hastePkgBinary ["update", "--global", "packageconfig"] ""
-      
+
       -- Install integer-gmp; double install shouldn't be needed anymore.
       run_ hasteCopyPkgBinary ["Cabal"] ""
       inDirectory "integer-gmp" $ do
         hasteInst ("install" : "--solver" : "topdown" : ghcOpts)
-      
+
       -- Install base
       inDirectory baseDir $ do
         basever <- file "base.cabal" >>= return
@@ -213,7 +213,7 @@ buildLibs cfg = do
         run_ hasteInstHisBinary [base, "dist" </> "build"] ""
         run_ hasteCopyPkgBinary [base, pkgdb] ""
         forEachFile "include" $ \f -> cp f (hasteSysDir </> "include")
-      
+
       -- Install array and haste-lib
       forM_ ["array", "haste-lib"] $ \pkg -> do
         inDirectory pkg $ hasteInst ("install" : ghcOpts)

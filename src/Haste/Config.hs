@@ -2,7 +2,9 @@
 module Haste.Config (
   Config (..), AppStart, def, stdJSLibs, startCustom, fastMultiply,
   safeMultiply, debugLib) where
+
 import Data.JSTarget
+import Data.List (intersperse)
 import Control.Shell (replaceExtension, (</>))
 import Blaze.ByteString.Builder
 import Blaze.ByteString.Builder.Char.Utf8
@@ -74,6 +76,9 @@ data Config = Config {
 
     -- | Write all jsmods to this path.
     targetLibPath :: FilePath,
+
+    -- | Write all commonjs modules to this path.
+    commonJsLibPath :: FilePath,
 
     -- | A function that takes the main symbol as its input and outputs the
     --   code that starts the program.
@@ -148,6 +153,7 @@ defConfig = Config {
     rtsLibs          = stdJSLibs,
     libPaths         = nub [jsmodUserDir, jsmodSysDir],
     targetLibPath    = ".",
+    commonJsLibPath  = commonJsUserDir, -- HACK
     appStart         = startOnLoadComplete,
     wrapProg         = False,
     ppOpts           = def,

@@ -1,0 +1,16 @@
+To install:
+
+* `cabal install`
+* `haste-boot --dev`
+
+Unfortunately there's an error in `GHC.IO` which I haven't solved yet.
+Workaround:
+
+* `cd libraries/base-ghc-7.8/GHC/`
+* remove `{- SOURCE -}` from line 50
+* `haste-streaming < IO.hs > IO.js`
+* `mv IO.js ~/.haste/haste-0.5.0_ghc-7.8.4/commonjs/base/GHC/`
+* `cd -`
+
+Another problem: A duplicated assignment in `base/GHC/Base.js`, line 254. Just
+remove the errant assignment.
